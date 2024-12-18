@@ -8,6 +8,20 @@ pipeline {
      }
 
      stages {
+          stage('Linter') {
+               steps {
+                    script {
+                         echo "Ejecutando ESLint para revisar el código..."
+                         def lintResult = sh script: 'npx eslint .', returnStatus: true
+
+                         if (lintResult != 0) {
+                         error "Se encontraron errores en el linter. Por favor, corrígelos antes de continuar."
+                         }
+                         echo "Linter ejecutado correctamente, no se encontraron errores."
+                    }
+               }
+          }
+
           stage('Petició de dades') {
                steps {
                     script {
@@ -24,20 +38,6 @@ pipeline {
                          echo "Executor: ${params.EXECUTOR}"
                          echo "Motivo: ${params.MOTIVO}"
                          echo "Chat ID: ${params.CHAT_ID}"
-                    }
-               }
-          }
-
-          stage('Linter') {
-               steps {
-                    script {
-                         echo "Ejecutando ESLint para revisar el código..."
-                         def lintResult = sh script: 'npx eslint .', returnStatus: true
-
-                         if (lintResult != 0) {
-                         error "Se encontraron errores en el linter. Por favor, corrígelos antes de continuar."
-                         }
-                         echo "Linter ejecutado correctamente, no se encontraron errores."
                     }
                }
           }
