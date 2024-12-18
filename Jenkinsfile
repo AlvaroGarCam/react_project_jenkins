@@ -1,6 +1,10 @@
 pipeline {
      agent any
 
+     tools {
+          nodejs "Node" // Asegúrate de que "Node" coincida con el nombre configurado en Jenkins
+     }
+
      parameters {
           string(name: 'EXECUTOR', defaultValue: '', description: 'Nombre de la persona que ejecuta la pipeline')
           string(name: 'MOTIVO', defaultValue: '', description: 'Motivo por el cual se ejecuta la pipeline')
