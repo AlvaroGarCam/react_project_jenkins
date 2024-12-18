@@ -11,7 +11,6 @@ pipeline {
           stage('Petició de dades') {
                steps {
                     script {
-                         // Validar si los parámetros están vacíos
                          if (params.EXECUTOR.trim() == '') {
                          error "El parámetro 'EXECUTOR' es obligatorio y no puede estar vacío."
                          }
@@ -22,10 +21,23 @@ pipeline {
                          error "El parámetro 'CHAT_ID' es obligatorio y no puede estar vacío."
                          }
 
-                         // Si los parámetros son válidos, imprimirlos
                          echo "Executor: ${params.EXECUTOR}"
                          echo "Motivo: ${params.MOTIVO}"
                          echo "Chat ID: ${params.CHAT_ID}"
+                    }
+               }
+          }
+
+          stage('Linter') {
+               steps {
+                    script {
+                         echo "Ejecutando ESLint para revisar el código..."
+                         def lintResult = sh script: 'npx eslint .', returnStatus: true
+
+                         if (lintResult != 0) {
+                         error "Se encontraron errores en el linter. Por favor, corrígelos antes de continuar."
+                         }
+                         echo "Linter ejecutado correctamente, no se encontraron errores."
                     }
                }
           }
