@@ -12,6 +12,14 @@ pipeline {
      }
 
      stages {
+          stage('Install Dependencies') {
+               steps {
+                    script {
+                         echo "Instalando dependencias..."
+                         sh 'npm install'
+                    }
+               }
+          }
           stage('Linter') {
                steps {
                     script {
