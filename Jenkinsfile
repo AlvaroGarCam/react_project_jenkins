@@ -6,8 +6,7 @@ pipeline {
      }
 
      environment {
-          GIT_USERNAME = credentials('github-credentials').username
-          GIT_PASSWORD = credentials('github-credentials').password
+          GIT_CREDENTIALS = credentials('github-credentials') // Usa las credenciales configuradas en Jenkins
      }
 
      parameters {
@@ -46,12 +45,10 @@ pipeline {
                          def testResult = sh script: 'npm test', returnStatus: true
 
                          if (testResult != 0) {
-                              // Exportar la variable TEST_RESULT como 'failure' si los tests fallan
-                              sh 'echo "TEST_RESULT=failure" > .env'
-                              error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
+                         sh 'echo "TEST_RESULT=failure" > .env'
+                         error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                              // Exportar la variable TEST_RESULT como 'success' si los tests pasan
-                              sh 'echo "TEST_RESULT=success" > .env'
+                         sh 'echo "TEST_RESULT=success" > .env'
                          }
                          echo "Todos los tests pasaron correctamente."
                     }
@@ -80,7 +77,7 @@ pipeline {
                          git config user.email "jenkins@pipeline.local"
                          git add README.md
                          git commit -m "Update README.md with latest test results"
-                         git push https://${env.GIT_USERNAME}:${env.GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
+                         git push https://${env.GIT_CREDENTIALS_USR}:${env.GIT_CREDENTIALS_PSW}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
                          """
                     }
                }
@@ -93,7 +90,7 @@ pipeline {
                          def buildResult = sh script: 'npm run build', returnStatus: true
 
                          if (buildResult != 0) {
-                              error "El proceso de build falló. Por favor, revisa los errores antes de continuar."
+                         error "El proceso de build falló. Por favor, revisa los errores antes de continuar."
                          }
                          echo "Build realizado correctamente. El proyecto está listo para desplegarse."
                     }
@@ -103,16 +100,6 @@ pipeline {
           stage('Petició de dades') {
                steps {
                     script {
-                         // if (params.EXECUTOR.trim() == '') {
-                         // error "El parámetro 'EXECUTOR' es obligatorio y no puede estar vacío."
-                         // }
-                         // if (params.MOTIVO.trim() == '') {
-                         // error "El parámetro 'MOTIVO' es obligatorio y no puede estar vacío."
-                         // }
-                         // if (params.CHAT_ID.trim() == '') {
-                         // error "El parámetro 'CHAT_ID' es obligatorio y no puede estar vacío."
-                         // }
-
                          echo "Executor: ${params.EXECUTOR}"
                          echo "Motivo: ${params.MOTIVO}"
                          echo "Chat ID: ${params.CHAT_ID}"
