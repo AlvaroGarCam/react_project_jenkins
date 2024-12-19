@@ -48,6 +48,20 @@ pipeline {
                }
           }
 
+          stage('Build') {
+               steps {
+                    script {
+                         echo "Realizando el build del proyecto..."
+                         def buildResult = sh script: 'npm run build', returnStatus: true
+
+                         if (buildResult != 0) {
+                              error "El proceso de build falló. Por favor, revisa los errores antes de continuar."
+                         }
+                         echo "Build realizado correctamente. El proyecto está listo para desplegarse."
+                    }
+               }
+          }
+
           stage('Petició de dades') {
                steps {
                     script {
