@@ -59,43 +59,13 @@ pipeline {
           stage('Update_Readme') {
                steps {
                     script {
-                         withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                         echo "Sincronizando con el repositorio remoto antes de realizar cambios..."
-
-                         // Limpieza del workspace y sincronización con la rama remota
-                         sh """
-                              echo "Restableciendo cambios locales no comprometidos..."
-                              git reset --hard HEAD || echo "No hay cambios locales para restablecer."
-                              echo "Haciendo fetch de los últimos cambios..."
-                              git fetch origin ci_jenkins
-                              echo "Haciendo pull con rebase para evitar conflictos..."
-                              git pull --rebase origin ci_jenkins || (echo "Error durante el pull/rebase. Por favor, revisa los conflictos." && exit 1)
-                         """
-
-                         // Actualizar el README.md
-                         sh """
-                              echo "Ejecutando el script updateReadme.js..."
-                              node jenkinsScripts/updateReadme.js || (echo "Error ejecutando el script de Node.js" && exit 1)
-                         """
-
-                         // Confirmar los cambios realizados en el README.md
-                         sh """
-                              echo "Realizando commit solo para el README.md..."
-                              git config user.name "Jenkins Pipeline"
-                              git config user.email "jenkins@pipeline.local"
-                              git add README.md
-                              git commit -m "Update README.md with latest test results" || echo "Nada que confirmar, el archivo README.md no fue modificado."
-                         """
-
-                         // Realizar el push al repositorio remoto
-                         sh """
-                              echo "Intentando realizar el push al repositorio remoto..."
-                              git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (
-                              echo "El push falló. Reintentando..."
-                              git pull --rebase origin ci_jenkins
-                              git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins
-                              ) || (echo "Error: No se pudo realizar el push a la rama ci_jenkins tras múltiples intentos." && exit 1)
-                         """
+                         withCredentials([string(credentialsId: '826f9bfd-2af2-4ebc-ac8f-61d2b9c5026d', variable: 'TOKEN')]) {
+                              sh """
+                                   echo "Intentando realizar el push al repositorio remoto con credenciales seguras..."
+                                   git push --force-with-lease https://${TOKEN}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (
+                                   echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
+                              """
+                         }
                          }
                     }
                }
