@@ -34,18 +34,32 @@ pipeline {
                }
           }
 
+          stage('Test') {
+               steps {
+                    script {
+                         echo "Ejecutando tests con Jest..."
+                         def testResult = sh script: 'npm test', returnStatus: true
+
+                         if (testResult != 0) {
+                              error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
+                         }
+                         echo "Todos los tests pasaron correctamente."
+                    }
+               }
+          }
+
           stage('Petició de dades') {
                steps {
                     script {
-                         if (params.EXECUTOR.trim() == '') {
-                         error "El parámetro 'EXECUTOR' es obligatorio y no puede estar vacío."
-                         }
-                         if (params.MOTIVO.trim() == '') {
-                         error "El parámetro 'MOTIVO' es obligatorio y no puede estar vacío."
-                         }
-                         if (params.CHAT_ID.trim() == '') {
-                         error "El parámetro 'CHAT_ID' es obligatorio y no puede estar vacío."
-                         }
+                         // if (params.EXECUTOR.trim() == '') {
+                         // error "El parámetro 'EXECUTOR' es obligatorio y no puede estar vacío."
+                         // }
+                         // if (params.MOTIVO.trim() == '') {
+                         // error "El parámetro 'MOTIVO' es obligatorio y no puede estar vacío."
+                         // }
+                         // if (params.CHAT_ID.trim() == '') {
+                         // error "El parámetro 'CHAT_ID' es obligatorio y no puede estar vacío."
+                         // }
 
                          echo "Executor: ${params.EXECUTOR}"
                          echo "Motivo: ${params.MOTIVO}"
