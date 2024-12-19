@@ -57,15 +57,58 @@ pipeline {
                steps {
                     script {
                          echo "Actualizando el archivo README.md con el resultado de los tests..."
-                         // Ejecutar el script de actualización
+
+                         // Comprobar versiones de Node.js y npm
                          sh """
+                              echo "Comprobando entorno de Node.js y npm..."
+                              node --version || (echo "Node.js no está instalado correctamente." && exit 1)
+                              npm --version || (echo "npm no está instalado correctamente." && exit 1)
+                         """
+
+                         // Verificar existencia de la carpeta jenkinsScripts y sus archivos
+                         sh """
+                              echo "Verificando la carpeta jenkinsScripts..."
+                              ls -l jenkinsScripts || (echo "La carpeta jenkinsScripts no existe o no es accesible." && exit 1)
+                         """
+
+                         // Mostrar contenido del archivo .env para verificar TEST_RESULT
+                         sh """
+                              echo "Verificando contenido del archivo .env..."
+                              if [ -f .env ]; then
+                                   cat .env
+                              else
+                                   echo "El archivo .env no existe o no se generó correctamente."
+                              fi
+                         """
+
+                         // Comprobar permisos para escribir en el directorio
+                         sh """
+                              echo "Comprobando permisos de escritura en el directorio..."
+                              touch test_file || (echo "No se puede crear un archivo en el directorio actual." && exit 1)
+                              rm test_file
+                         """
+
+                         // Mostrar contenido del archivo README.md antes de actualizar
+                         sh """
+                              echo "Contenido actual del README.md:"
+                              if [ -f README.md ]; then
+                                   cat README.md
+                              else
+                                   echo "El archivo README.md no existe."
+                              fi
+                         """
+
+                         // Ejecutar el script de actualización del README.md
+                         sh """
+                              echo "Ejecutando el script updateReadme.js..."
                               set -e
-                              export TEST_RESULT=${testResult}
-                              node jenkinsScripts/updateReadme.js
+                              source .env
+                              node jenkinsScripts/updateReadme.js || (echo "Error ejecutando el script de Node.js" && exit 1)
                          """
                     }
                }
           }
+
 
           stage('Build') {
                steps {
