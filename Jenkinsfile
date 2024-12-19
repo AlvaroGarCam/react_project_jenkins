@@ -108,6 +108,32 @@ pipeline {
                }
           }
 
+          stage('Deploy to Vercel') {
+               when {
+                    expression {
+                         currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                    }
+               }
+               steps {
+                    script {
+                         withCredentials([string(credentialsId: 'vercel-deploy-token', variable: 'VERCEL_TOKEN')]) {
+                              echo "Iniciando el despliegue en Vercel..."
+                              def deployResult = sh(
+                                   script: """
+                                   chmod +x ./jenkinsScripts/deployToVercel.sh
+                                   sh ./jenkinsScripts/deployToVercel.sh $VERCEL_TOKEN
+                                   """,
+                                   returnStatus: true
+                              )
+                              if (deployResult != 0) {
+                                   error "El despliegue en Vercel falló. Revisa el log para más detalles."
+                              }
+                         }
+                    }
+               }
+          }
+
+
           stage('Petició de dades') {
                steps {
                     script {
