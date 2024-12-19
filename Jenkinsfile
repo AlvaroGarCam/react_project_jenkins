@@ -46,12 +46,13 @@ pipeline {
                          def testResult = sh(script: 'npm test', returnStatus: true)
 
                          if (testResult != 0) {
-                              env.TEST_RESULT = 'failure' // Configura la variable de entorno global
-                              error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
+                         currentBuild.result = 'FAILURE'
+                         sh "echo 'failure' > test_result.txt"
+                         error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                              env.TEST_RESULT = 'success' // Configura la variable de entorno global
+                         sh "echo 'success' > test_result.txt"
                          }
-                         echo "Todos los tests pasaron correctamente. Resultado: ${env.TEST_RESULT}"
+                         echo "Todos los tests pasaron correctamente."
                     }
                }
           }
@@ -59,18 +60,16 @@ pipeline {
           stage('Update_Readme') {
                steps {
                     script {
-                         if (!env.TEST_RESULT) {
-                              error "TEST_RESULT no está definido. Asegúrate de que la stage 'Test' lo configure correctamente."
-                         }
+                         env.TEST_RESULT = sh(script: "cat test_result.txt", returnStdout: true).trim()
                          echo "Actualizando el README.md con el resultado de los tests (${env.TEST_RESULT})..."
                          sh """
-                              echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
-                              node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
+                         echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
+                         node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
                          """
                     }
                }
           }
-
+          
           // stage('Push_Changes') {
           //      steps {
           //           script {
@@ -88,7 +87,6 @@ pipeline {
           //           }
           //      }
           // }
-
 
           stage('Build') {
                steps {
