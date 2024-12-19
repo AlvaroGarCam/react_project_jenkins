@@ -5,10 +5,6 @@ pipeline {
           nodejs "Node" // Asegúrate de que "Node" coincida con el nombre configurado en Jenkins
      }
 
-     environment {
-          GIT_CREDENTIALS = credentials('github-credentials') // Usa las credenciales configuradas en Jenkins
-     }
-
      parameters {
           string(name: 'EXECUTOR', defaultValue: '', description: 'Nombre de la persona que ejecuta la pipeline')
           string(name: 'MOTIVO', defaultValue: '', description: 'Motivo por el cual se ejecuta la pipeline')
@@ -58,27 +54,29 @@ pipeline {
           stage('Update_Readme') {
                steps {
                     script {
+                         withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                          echo "Actualizando el archivo README.md con el resultado de los tests..."
                          
                          sh """
-                         echo "Ejecutando el script updateReadme.js..."
-                         set -e
-                         bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
+                              echo "Ejecutando el script updateReadme.js..."
+                              set -e
+                              bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
                          """
 
                          sh """
-                         echo "Verificando la rama actual..."
-                         git checkout ci_jenkins || (echo "Error: No se pudo cambiar a la rama ci_jenkins." && exit 1)
+                              echo "Verificando la rama actual..."
+                              git checkout ci_jenkins || (echo "Error: No se pudo cambiar a la rama ci_jenkins." && exit 1)
                          """
 
                          sh """
-                         echo "Realizando commit y push al repositorio remoto..."
-                         git config user.name "Jenkins Pipeline"
-                         git config user.email "jenkins@pipeline.local"
-                         git add README.md
-                         git commit -m "Update README.md with latest test results"
-                         git push https://${env.GIT_CREDENTIALS_USR}:${env.GIT_CREDENTIALS_PSW}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
+                              echo "Realizando commit y push al repositorio remoto..."
+                              git config user.name "Jenkins Pipeline"
+                              git config user.email "jenkins@pipeline.local"
+                              git add README.md
+                              git commit -m "Update README.md with latest test results"
+                              git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
                          """
+                         }
                     }
                }
           }
