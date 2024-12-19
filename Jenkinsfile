@@ -11,13 +11,6 @@ pipeline {
           string(name: 'CHAT_ID', defaultValue: '', description: 'Chat ID de Telegram para las notificaciones')
      }
 
-     environment {
-          LINTER_RESULT = ''
-          TEST_RESULT = ''
-          UPDATE_README_RESULT = ''
-          DEPLOY_TO_VERCEL_RESULT = ''
-     }
-
      stages {
           stage('Install Dependencies') {
                steps {
@@ -39,10 +32,10 @@ pipeline {
                          def lintResult = sh script: 'npx eslint .', returnStatus: true
 
                          if (lintResult != 0) {
-                              env.LINTER_RESULT = 'Error'
+                              writeFile file: 'linter_result.txt', text: 'Error'
                               error "Se encontraron errores en el linter. Por favor, corrígelos antes de continuar."
                          } else {
-                              env.LINTER_RESULT = 'Correcte'
+                              writeFile file: 'linter_result.txt', text: 'Correcte'
                          }
                          echo "Linter ejecutado correctamente, no se encontraron errores."
                     }
@@ -56,12 +49,10 @@ pipeline {
                          def testResult = sh(script: 'npm test', returnStatus: true)
 
                          if (testResult != 0) {
-                              writeFile file: 'test_result.txt', text: 'failure' // Guardar resultado en archivo
-                              env.TEST_RESULT = 'Error'
+                              writeFile file: 'test_result.txt', text: 'Error'
                               error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                              writeFile file: 'test_result.txt', text: 'success' // Guardar resultado en archivo
-                              env.TEST_RESULT = 'Correcte'
+                              writeFile file: 'test_result.txt', text: 'Correcte'
                          }
                          echo "Todos los tests pasaron correctamente."
                     }
@@ -80,7 +71,7 @@ pipeline {
                          node ./jenkinsScripts/updateReadme.js ${testResult}
                          """
 
-                         env.UPDATE_README_RESULT = 'Correcte'
+                         writeFile file: 'update_readme_result.txt', text: 'Correcte'
                     }
                }
           }
@@ -141,10 +132,10 @@ pipeline {
                                    returnStatus: true
                               )
                               if (deployResult != 0) {
-                                   env.DEPLOY_TO_VERCEL_RESULT = 'Error'
+                                   writeFile file: 'deploy_to_vercel_result.txt', text: 'Error'
                                    error "El despliegue en Vercel falló. Revisa el log para más detalles."
                               } else {
-                                   env.DEPLOY_TO_VERCEL_RESULT = 'Correcte'
+                                   writeFile file: 'deploy_to_vercel_result.txt', text: 'Correcte'
                               }
                          }
                     }
@@ -155,12 +146,17 @@ pipeline {
                steps {
                     script {
                          withCredentials([string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_TOKEN')]) {
+                              def linterResult = readFile('linter_result.txt').trim()
+                              def testResult = readFile('test_result.txt').trim()
+                              def updateReadmeResult = readFile('update_readme_result.txt').trim()
+                              def deployToVercelResult = readFile('deploy_to_vercel_result.txt').trim()
+
                               def message = """
                               S'ha executat la pipeline de Jenkins amb els següents resultats:
-                              - Linter_stage: ${env.LINTER_RESULT ?: 'Desconegut'}
-                              - Test_stage: ${env.TEST_RESULT ?: 'Desconegut'}
-                              - Update_readme_stage: ${env.UPDATE_README_RESULT ?: 'Desconegut'}
-                              - Deploy_to_Vercel_stage: ${env.DEPLOY_TO_VERCEL_RESULT ?: 'Desconegut'}
+                              - Linter_stage: ${linterResult}
+                              - Test_stage: ${testResult}
+                              - Update_readme_stage: ${updateReadmeResult}
+                              - Deploy_to_Vercel_stage: ${deployToVercelResult}
                               """.stripIndent()
 
                               sh """
