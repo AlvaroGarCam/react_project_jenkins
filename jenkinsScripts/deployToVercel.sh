@@ -10,7 +10,7 @@ fi
 export VERCEL_TOKEN=$1
 
 # Realiza el despliegue usando Vercel CLI
-vercel --prod --yes --token $VERCEL_TOKEN || {
+vercel --prod --yes --name jenkins_project --token $VERCEL_TOKEN || {
      echo "Error durante el despliegue en Vercel."
      exit 1
 }
