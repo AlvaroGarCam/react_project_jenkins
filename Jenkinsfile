@@ -63,6 +63,15 @@ pipeline {
                               set -e
                               bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
                          """
+                         // Realizar commit y push al repositorio
+                         sh """
+                              echo "Realizando commit y push al repositorio remoto..."
+                              git config user.name "Jenkins Pipeline"
+                              git config user.email "jenkins@pipeline.local"
+                              git add README.md
+                              git commit -m "Update README.md with latest test results"
+                              git push origin ci_jenkins
+                         """
                     }
                }
           }
