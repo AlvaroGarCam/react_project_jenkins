@@ -46,10 +46,10 @@ pipeline {
                          def testResult = sh script: 'npm test', returnStatus: true
 
                          if (testResult != 0) {
-                         env.TEST_RESULT = 'failure'
-                         error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
+                              env.TEST_RESULT = 'failure' // Configura TEST_RESULT en el entorno global
+                              error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                         env.TEST_RESULT = 'success'
+                              env.TEST_RESULT = 'success' // Configura TEST_RESULT en el entorno global
                          }
                          echo "Todos los tests pasaron correctamente."
                     }
@@ -62,27 +62,32 @@ pipeline {
                          echo "Actualizando el README.md con el resultado de los tests..."
                          // Ejecutar el script de actualización del README.md
                          sh """
-                         echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
-                         node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
+                              echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
+                              node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
                          """
                     }
                }
           }
 
+
           stage('Push_Changes') {
                steps {
                     script {
-                         withCredentials([sshUserPrivateKey(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', keyFileVariable: 'SSH_KEY')]) {
-                         echo "Configurando SSH para hacer el push..."
-                         sh """
-                              eval \$(ssh-agent -s)
-                              ssh-add ${SSH_KEY}
-                              bash ./jenkinsScripts/pushChanges.sh '${params.EXECUTOR}' '${params.MOTIVO}'
-                         """
+                         withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                              echo "Realizando el push con HTTPS..."
+                              sh """
+                                   git config --global user.name "${params.EXECUTOR}"
+                                   git config --global user.email "jenkins@pipeline.local"
+                                   git add README.md
+                                   git commit -m "Update README.md by ${params.EXECUTOR} - ${params.MOTIVO}" || echo "Nada que commitear."
+                                   git pull --rebase origin ci_jenkins
+                                   git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins HEAD:ci_jenkins
+                              """
                          }
                     }
                }
           }
+
 
           stage('Build') {
                steps {

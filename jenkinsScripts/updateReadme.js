@@ -7,8 +7,8 @@ const readmePath = './README.md';
 const successBadge = '![Success](https://img.shields.io/badge/tested%20with-Cypress-04C38E.svg)';
 const failureBadge = '![Failure](https://img.shields.io/badge/test-failure-red)';
 
-// Obtener el resultado de los tests desde las variables de entorno
-const testResult = process.env.TEST_RESULT || 'success';
+// Obtener el resultado de los tests desde los argumentos
+const testResult = process.argv[2] || 'success'; // Leer argumento o usar "success" por defecto
 
 // Seleccionar el badge según el resultado
 const badge = testResult === 'success' ? successBadge : failureBadge;
@@ -24,4 +24,4 @@ const updatedContent = readmeContent.includes('RESULTADO DE LOS ÚLTIMOS TESTS')
 // Escribir el contenido actualizado en el README.md
 fs.writeFileSync(readmePath, updatedContent, 'utf-8');
 
-console.log('README.md actualizado con el resultado de los tests.');
+console.log(`README.md actualizado con el resultado de los tests (${testResult}).`);
