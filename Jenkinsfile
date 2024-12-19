@@ -57,12 +57,20 @@ pipeline {
                steps {
                     script {
                          echo "Actualizando el archivo README.md con el resultado de los tests..."
+                         
                          // Ejecutar el script de actualización del README.md
                          sh """
                               echo "Ejecutando el script updateReadme.js..."
                               set -e
                               bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
                          """
+
+                         // Asegurarse de que estamos en la rama 'ci_jenkins'
+                         sh """
+                              echo "Verificando la rama actual..."
+                              git checkout ci_jenkins || (echo "Error: No se pudo cambiar a la rama ci_jenkins." && exit 1)
+                         """
+
                          // Realizar commit y push al repositorio
                          sh """
                               echo "Realizando commit y push al repositorio remoto..."
@@ -70,11 +78,12 @@ pipeline {
                               git config user.email "jenkins@pipeline.local"
                               git add README.md
                               git commit -m "Update README.md with latest test results"
-                              git push origin ci_jenkins
+                              git push origin ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
                          """
                     }
                }
           }
+
 
 
           stage('Build') {
