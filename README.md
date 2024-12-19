@@ -3,4 +3,4 @@
 
 ## RESULTADO DE LOS ÚLTIMOS TESTS
 
-![Failure](https://img.shields.io/badge/test-failure-red)
+![Success](https://img.shields.io/badge/tested%20with-Cypress-04C38E.svg)
