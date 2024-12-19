@@ -59,6 +59,7 @@ pipeline {
                          echo "Actualizando el archivo README.md con el resultado de los tests..."
                          // Ejecutar el script de actualización
                          sh """
+                              set -e
                               export TEST_RESULT=${testResult}
                               node jenkinsScripts/updateReadme.js
                          """
