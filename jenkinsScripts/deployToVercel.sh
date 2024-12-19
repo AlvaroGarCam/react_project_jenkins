@@ -10,7 +10,7 @@ fi
 export VERCEL_TOKEN=$1
 
 # Realiza el despliegue usando Vercel CLI
-vercel --prod --token $VERCEL_TOKEN || {
+vercel --prod --yes --token $VERCEL_TOKEN || {
      echo "Error durante el despliegue en Vercel."
      exit 1
 }
