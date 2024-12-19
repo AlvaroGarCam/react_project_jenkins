@@ -43,25 +43,26 @@ pipeline {
                steps {
                     script {
                          echo "Ejecutando tests con Jest..."
-                         def testResult = sh script: 'npm test', returnStatus: true
+                         def testResult = sh(script: 'npm test', returnStatus: true)
 
                          if (testResult != 0) {
-                              env.TEST_RESULT = 'failure' // Se configura correctamente en el entorno global
+                              env.TEST_RESULT = 'failure' // Configura la variable de entorno global
                               error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                              env.TEST_RESULT = 'success' // Se configura correctamente en el entorno global
+                              env.TEST_RESULT = 'success' // Configura la variable de entorno global
                          }
                          echo "Todos los tests pasaron correctamente. Resultado: ${env.TEST_RESULT}"
                     }
                }
           }
 
-
           stage('Update_Readme') {
                steps {
                     script {
+                         if (!env.TEST_RESULT) {
+                              error "TEST_RESULT no está definido. Asegúrate de que la stage 'Test' lo configure correctamente."
+                         }
                          echo "Actualizando el README.md con el resultado de los tests (${env.TEST_RESULT})..."
-                         // Ejecutar el script de actualización del README.md
                          sh """
                               echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
                               node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
@@ -69,8 +70,6 @@ pipeline {
                     }
                }
           }
-
-
 
           // stage('Push_Changes') {
           //      steps {
