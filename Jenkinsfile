@@ -11,10 +11,6 @@ pipeline {
           string(name: 'CHAT_ID', defaultValue: '', description: 'Chat ID de Telegram para las notificaciones')
      }
 
-     environment {
-          TEST_RESULT = '' // Variable para almacenar el resultado de los tests
-     }
-
      stages {
           stage('Install Dependencies') {
                steps {
@@ -43,14 +39,15 @@ pipeline {
                steps {
                     script {
                          echo "Ejecutando tests con Jest..."
-                         def testResult = sh(script: 'npm test', returnStatus: true)
+                         def testResult = sh(script: 'npm test', returnStatus: true) // Ejecuta los tests y captura el estado
 
                          if (testResult != 0) {
-                         currentBuild.result = 'FAILURE'
-                         sh "echo 'failure' > test_result.txt"
+                         // Si fallan los tests, devolver 'failure'
+                         writeFile file: 'test_result.txt', text: 'failure' // Guardar resultado en archivo
                          error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                         sh "echo 'success' > test_result.txt"
+                         // Si los tests pasan, devolver 'success'
+                         writeFile file: 'test_result.txt', text: 'success' // Guardar resultado en archivo
                          }
                          echo "Todos los tests pasaron correctamente."
                     }
@@ -60,33 +57,18 @@ pipeline {
           stage('Update_Readme') {
                steps {
                     script {
-                         env.TEST_RESULT = sh(script: "cat test_result.txt", returnStdout: true).trim()
-                         echo "Actualizando el README.md con el resultado de los tests (${env.TEST_RESULT})..."
+                         // Leer el resultado directamente desde el archivo `test_result.txt`
+                         def testResult = readFile('test_result.txt').trim()
+
+                         echo "Actualizando el README.md con el resultado de los tests (${testResult})..."
+
                          sh """
-                         echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
-                         node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
+                         echo "Ejecutando el script updateReadme.js con TEST_RESULT=${testResult}..."
+                         node ./jenkinsScripts/updateReadme.js ${testResult}
                          """
                     }
                }
           }
-          
-          // stage('Push_Changes') {
-          //      steps {
-          //           script {
-          //                withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-          //                     echo "Realizando el push con HTTPS..."
-          //                     sh """
-          //                          git config --global user.name "${params.EXECUTOR}"
-          //                          git config --global user.email "jenkins@pipeline.local"
-          //                          git add README.md
-          //                          git commit -m "Update README.md by ${params.EXECUTOR} - ${params.MOTIVO}" || echo "Nada que commitear."
-          //                          git pull --rebase origin ci_jenkins
-          //                          git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins HEAD:ci_jenkins
-          //                     """
-          //                }
-          //           }
-          //      }
-          // }
 
           stage('Build') {
                steps {
@@ -113,3 +95,22 @@ pipeline {
           }
      }
 }
+
+
+  // stage('Push_Changes') {
+          //      steps {
+          //           script {
+          //                withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+          //                     echo "Realizando el push con HTTPS..."
+          //                     sh """
+          //                          git config --global user.name "${params.EXECUTOR}"
+          //                          git config --global user.email "jenkins@pipeline.local"
+          //                          git add README.md
+          //                          git commit -m "Update README.md by ${params.EXECUTOR} - ${params.MOTIVO}" || echo "Nada que commitear."
+          //                          git pull --rebase origin ci_jenkins
+          //                          git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins HEAD:ci_jenkins
+          //                     """
+          //                }
+          //           }
+          //      }
+          // }
