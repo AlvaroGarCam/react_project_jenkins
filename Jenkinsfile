@@ -66,7 +66,6 @@ pipeline {
                                    echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
                               """
                          }
-                         }
                     }
                }
           }
