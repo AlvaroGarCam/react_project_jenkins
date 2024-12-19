@@ -41,9 +41,27 @@ pipeline {
                          def testResult = sh script: 'npm test', returnStatus: true
 
                          if (testResult != 0) {
+                              // Exportar la variable TEST_RESULT como 'failure' si los tests fallan
+                              sh 'echo "TEST_RESULT=failure" > .env'
                               error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
+                         } else {
+                              // Exportar la variable TEST_RESULT como 'success' si los tests pasan
+                              sh 'echo "TEST_RESULT=success" > .env'
                          }
                          echo "Todos los tests pasaron correctamente."
+                    }
+               }
+          }
+
+          stage('Update_Readme') {
+               steps {
+                    script {
+                         echo "Actualizando el archivo README.md con el resultado de los tests..."
+                         // Ejecutar el script de actualización
+                         sh """
+                              export TEST_RESULT=${testResult}
+                              node jenkinsScripts/updateReadme.js
+                         """
                     }
                }
           }
