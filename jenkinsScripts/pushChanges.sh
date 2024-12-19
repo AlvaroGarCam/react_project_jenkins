@@ -1,34 +1,26 @@
-#!/bin/bash
+#!/bin/sh
 
-# Parámetros
-EXECUTOR=$1
-MOTIVO=$2
-BRANCH="ci_jenkins"
+# Personalizar el mensaje del commit
+COMMIT_MSG="Pipeline ejecutada por $1. Motivo: $2"
 
-# Mensaje de commit
-COMMIT_MSG="Actualización automática del README.md por ${EXECUTOR}. Motivo: ${MOTIVO}"
+# Configurar el acceso a GitHub
+ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
-# Configuración de Git
-echo "Configurando Git..."
-git config --global user.name "${EXECUTOR}"
+# Configurar el usuario y correo de Git
+git config --global user.name "$1"
 git config --global user.email "jenkins@pipeline.local"
 
-# Añadir y commitear los cambios
-echo "Añadiendo y commiteando cambios..."
+# Preparar los cambios para el commit
 git add README.md
-git commit -m "${COMMIT_MSG}" || echo "No hay cambios para commitear."
 
-# Hacer push con rebase en caso de conflictos
-echo "Haciendo push de los cambios al repositorio remoto..."
-git pull --rebase origin ${BRANCH}
-git push origin HEAD:${BRANCH} || {
-     echo "El push falló. Intentando resolver conflictos..."
-     git pull --rebase origin ${BRANCH}
-     git push origin HEAD:${BRANCH} || {
-          echo "Error: No se pudo realizar el push tras múltiples intentos."
-          exit 1
-     }
+# Crear el commit con el mensaje proporcionado
+git commit -m "$COMMIT_MSG" || echo "Nada que commitear."
+
+# Hacer push a la rama especificada (ci_jenkins en tu caso)
+git push origin HEAD:ci_jenkins || {
+     echo "Error al hacer push. Intentando hacer pull con rebase..."
+     git pull --rebase origin ci_jenkins
+     git push origin HEAD:ci_jenkins
 }
 
-echo "Push completado con éxito."
 exit 0

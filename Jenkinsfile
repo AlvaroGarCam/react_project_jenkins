@@ -70,6 +70,30 @@ pipeline {
                }
           }
 
+          stage('Push_Changes') {
+               steps {
+                    script {
+                         withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-stage-key', keyFileVariable: 'SSH_KEY')]) {
+                              echo "Realizando el push al repositorio remoto..."
+                              
+                              def pushResult = sh(
+                                   script: """
+                                   chmod 600 $SSH_KEY
+                                   eval \$(ssh-agent -s)
+                                   ssh-add $SSH_KEY
+                                   sh ./jenkinsScripts/pushChanges.sh '${params.EXECUTOR}' '${params.MOTIVO}'
+                                   """,
+                                   returnStatus: true
+                              )
+                              
+                              if (pushResult != 0) {
+                                   error "El push falló. Revisa el log para más detalles."
+                              }
+                         }
+                    }
+               }
+          }
+
           stage('Build') {
                steps {
                     script {
@@ -96,21 +120,3 @@ pipeline {
      }
 }
 
-
-  // stage('Push_Changes') {
-          //      steps {
-          //           script {
-          //                withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-          //                     echo "Realizando el push con HTTPS..."
-          //                     sh """
-          //                          git config --global user.name "${params.EXECUTOR}"
-          //                          git config --global user.email "jenkins@pipeline.local"
-          //                          git add README.md
-          //                          git commit -m "Update README.md by ${params.EXECUTOR} - ${params.MOTIVO}" || echo "Nada que commitear."
-          //                          git pull --rebase origin ci_jenkins
-          //                          git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins HEAD:ci_jenkins
-          //                     """
-          //                }
-          //           }
-          //      }
-          // }
