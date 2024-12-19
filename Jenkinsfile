@@ -62,9 +62,22 @@ pipeline {
                          echo "Actualizando el README.md con el resultado de los tests..."
                          // Ejecutar el script de actualización del README.md
                          sh """
-                              echo "Ejecutando el script updateReadme.js..."
-                              set -e
-                              bash -c "node ./scripts/updateReadme.js ${env.TEST_RESULT}"
+                         echo "Ejecutando el script updateReadme.js con TEST_RESULT=${env.TEST_RESULT}..."
+                         node ./jenkinsScripts/updateReadme.js ${env.TEST_RESULT}
+                         """
+                    }
+               }
+          }
+
+          stage('Push_Changes') {
+               steps {
+                    script {
+                         withCredentials([sshUserPrivateKey(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', keyFileVariable: 'SSH_KEY')]) {
+                         echo "Configurando SSH para hacer el push..."
+                         sh """
+                              eval \$(ssh-agent -s)
+                              ssh-add ${SSH_KEY}
+                              bash ./jenkinsScripts/pushChanges.sh '${params.EXECUTOR}' '${params.MOTIVO}'
                          """
                          }
                     }
