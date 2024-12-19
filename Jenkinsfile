@@ -11,6 +11,13 @@ pipeline {
           string(name: 'CHAT_ID', defaultValue: '', description: 'Chat ID de Telegram para las notificaciones')
      }
 
+     environment {
+          LINTER_RESULT = ''
+          TEST_RESULT = ''
+          UPDATE_README_RESULT = ''
+          DEPLOY_TO_VERCEL_RESULT = ''
+     }
+
      stages {
           stage('Install Dependencies') {
                steps {
@@ -25,7 +32,6 @@ pipeline {
                }
           }
 
-
           stage('Linter') {
                steps {
                     script {
@@ -33,7 +39,10 @@ pipeline {
                          def lintResult = sh script: 'npx eslint .', returnStatus: true
 
                          if (lintResult != 0) {
-                         error "Se encontraron errores en el linter. Por favor, corrígelos antes de continuar."
+                              env.LINTER_RESULT = 'Error'
+                              error "Se encontraron errores en el linter. Por favor, corrígelos antes de continuar."
+                         } else {
+                              env.LINTER_RESULT = 'Correcte'
                          }
                          echo "Linter ejecutado correctamente, no se encontraron errores."
                     }
@@ -44,15 +53,15 @@ pipeline {
                steps {
                     script {
                          echo "Ejecutando tests con Jest..."
-                         def testResult = sh(script: 'npm test', returnStatus: true) // Ejecuta los tests y captura el estado
+                         def testResult = sh(script: 'npm test', returnStatus: true)
 
                          if (testResult != 0) {
-                         // Si fallan los tests, devolver 'failure'
-                         writeFile file: 'test_result.txt', text: 'failure' // Guardar resultado en archivo
-                         error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
+                              writeFile file: 'test_result.txt', text: 'failure' // Guardar resultado en archivo
+                              env.TEST_RESULT = 'Error'
+                              error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                         // Si los tests pasan, devolver 'success'
-                         writeFile file: 'test_result.txt', text: 'success' // Guardar resultado en archivo
+                              writeFile file: 'test_result.txt', text: 'success' // Guardar resultado en archivo
+                              env.TEST_RESULT = 'Correcte'
                          }
                          echo "Todos los tests pasaron correctamente."
                     }
@@ -62,7 +71,6 @@ pipeline {
           stage('Update_Readme') {
                steps {
                     script {
-                         // Leer el resultado directamente desde el archivo `test_result.txt`
                          def testResult = readFile('test_result.txt').trim()
 
                          echo "Actualizando el README.md con el resultado de los tests (${testResult})..."
@@ -71,6 +79,8 @@ pipeline {
                          echo "Ejecutando el script updateReadme.js con TEST_RESULT=${testResult}..."
                          node ./jenkinsScripts/updateReadme.js ${testResult}
                          """
+
+                         env.UPDATE_README_RESULT = 'Correcte'
                     }
                }
           }
@@ -80,7 +90,7 @@ pipeline {
                     script {
                          withCredentials([sshUserPrivateKey(credentialsId: 'jenkins-stage-key', keyFileVariable: 'SSH_KEY')]) {
                               echo "Realizando el push al repositorio remoto..."
-                              
+
                               def pushResult = sh(
                                    script: """
                                    chmod 600 $SSH_KEY
@@ -90,7 +100,7 @@ pipeline {
                                    """,
                                    returnStatus: true
                               )
-                              
+
                               if (pushResult != 0) {
                                    error "El push falló. Revisa el log para más detalles."
                               }
@@ -106,7 +116,7 @@ pipeline {
                          def buildResult = sh script: 'npm run build', returnStatus: true
 
                          if (buildResult != 0) {
-                         error "El proceso de build falló. Por favor, revisa los errores antes de continuar."
+                              error "El proceso de build falló. Por favor, revisa los errores antes de continuar."
                          }
                          echo "Build realizado correctamente. El proyecto está listo para desplegarse."
                     }
@@ -131,13 +141,36 @@ pipeline {
                                    returnStatus: true
                               )
                               if (deployResult != 0) {
+                                   env.DEPLOY_TO_VERCEL_RESULT = 'Error'
                                    error "El despliegue en Vercel falló. Revisa el log para más detalles."
+                              } else {
+                                   env.DEPLOY_TO_VERCEL_RESULT = 'Correcte'
                               }
                          }
                     }
                }
           }
 
+          stage('Notificació') {
+               steps {
+                    script {
+                         withCredentials([string(credentialsId: 'telegram-bot-token', variable: 'TELEGRAM_TOKEN')]) {
+                              def message = """
+                              S'ha executat la pipeline de Jenkins amb els següents resultats:
+                              - Linter_stage: ${env.LINTER_RESULT ?: 'Desconegut'}
+                              - Test_stage: ${env.TEST_RESULT ?: 'Desconegut'}
+                              - Update_readme_stage: ${env.UPDATE_README_RESULT ?: 'Desconegut'}
+                              - Deploy_to_Vercel_stage: ${env.DEPLOY_TO_VERCEL_RESULT ?: 'Desconegut'}
+                              """.stripIndent()
+
+                              sh """
+                              chmod +x ./jenkinsScripts/sendTelegramMessage.sh
+                              ./jenkinsScripts/sendTelegramMessage.sh "$TELEGRAM_TOKEN" "${params.CHAT_ID}" "${message}"
+                              """
+                         }
+                    }
+               }
+          }
 
           stage('Petició de dades') {
                steps {
@@ -150,4 +183,3 @@ pipeline {
           }
      }
 }
-
