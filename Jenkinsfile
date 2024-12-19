@@ -84,7 +84,7 @@ pipeline {
                                    echo "Realizando commit solo para el README.md..."
                                    git config user.name "Jenkins Pipeline"
                                    git config user.email "jenkins@pipeline.local"
-                                   git add README.md
+                                   git add .
                                    git commit -m "Update README.md with latest test results" || echo "Nada que confirmar, el archivo README.md no fue modificado."
                               """
                               
