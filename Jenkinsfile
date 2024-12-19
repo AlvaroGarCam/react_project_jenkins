@@ -11,6 +11,10 @@ pipeline {
           string(name: 'CHAT_ID', defaultValue: '', description: 'Chat ID de Telegram para las notificaciones')
      }
 
+     environment {
+          TEST_RESULT = '' // Variable para almacenar el resultado de los tests
+     }
+
      stages {
           stage('Install Dependencies') {
                steps {
@@ -42,10 +46,10 @@ pipeline {
                          def testResult = sh script: 'npm test', returnStatus: true
 
                          if (testResult != 0) {
-                         sh 'echo "TEST_RESULT=failure" > .env'
+                         env.TEST_RESULT = 'failure'
                          error "Se encontraron errores en los tests. Por favor, corrígelos antes de continuar."
                          } else {
-                         sh 'echo "TEST_RESULT=success" > .env'
+                         env.TEST_RESULT = 'success'
                          }
                          echo "Todos los tests pasaron correctamente."
                     }
@@ -56,48 +60,46 @@ pipeline {
                steps {
                     script {
                          withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                              echo "Sincronizando con el repositorio remoto antes de realizar cambios..."
+                         echo "Sincronizando con el repositorio remoto antes de realizar cambios..."
 
-                              // Limpieza del workspace y sincronización con la rama remota
-                              sh """
-                                   echo "Restableciendo cambios locales no comprometidos..."
-                                   git reset --hard HEAD || echo "No hay cambios locales para restablecer."
-                                   echo "Haciendo fetch de los últimos cambios..."
-                                   git fetch origin ci_jenkins
-                                   echo "Haciendo pull con rebase para evitar conflictos..."
-                                   git pull --rebase origin ci_jenkins || (echo "Error durante el pull/rebase. Por favor, revisa los conflictos." && exit 1)
-                              """
+                         // Limpieza del workspace y sincronización con la rama remota
+                         sh """
+                              echo "Restableciendo cambios locales no comprometidos..."
+                              git reset --hard HEAD || echo "No hay cambios locales para restablecer."
+                              echo "Haciendo fetch de los últimos cambios..."
+                              git fetch origin ci_jenkins
+                              echo "Haciendo pull con rebase para evitar conflictos..."
+                              git pull --rebase origin ci_jenkins || (echo "Error durante el pull/rebase. Por favor, revisa los conflictos." && exit 1)
+                         """
 
-                              // Actualizar el README.md
-                              sh """
-                                   echo "Ejecutando el script updateReadme.js..."
-                                   set -e
-                                   bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
-                              """
+                         // Actualizar el README.md
+                         sh """
+                              echo "Ejecutando el script updateReadme.js..."
+                              node jenkinsScripts/updateReadme.js || (echo "Error ejecutando el script de Node.js" && exit 1)
+                         """
 
-                              // Confirmar los cambios realizados en el README.md
-                              sh """
-                                   echo "Realizando commit solo para el README.md..."
-                                   git config user.name "Jenkins Pipeline"
-                                   git config user.email "jenkins@pipeline.local"
-                                   git add README.md
-                                   git commit -m "Update README.md with latest test results" || echo "Nada que confirmar, el archivo README.md no fue modificado."
-                              """
+                         // Confirmar los cambios realizados en el README.md
+                         sh """
+                              echo "Realizando commit solo para el README.md..."
+                              git config user.name "Jenkins Pipeline"
+                              git config user.email "jenkins@pipeline.local"
+                              git add README.md
+                              git commit -m "Update README.md with latest test results" || echo "Nada que confirmar, el archivo README.md no fue modificado."
+                         """
 
-                              // Realizar el push al repositorio remoto
-                              sh """
-                                   echo "Intentando realizar el push al repositorio remoto..."
-                                   git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (
-                                   echo "El push falló. Reintentando..."
-                                   git pull --rebase origin ci_jenkins
-                                   git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins
-                                   ) || (echo "Error: No se pudo realizar el push a la rama ci_jenkins tras múltiples intentos." && exit 1)
-                              """
+                         // Realizar el push al repositorio remoto
+                         sh """
+                              echo "Intentando realizar el push al repositorio remoto..."
+                              git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (
+                              echo "El push falló. Reintentando..."
+                              git pull --rebase origin ci_jenkins
+                              git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins
+                              ) || (echo "Error: No se pudo realizar el push a la rama ci_jenkins tras múltiples intentos." && exit 1)
+                         """
                          }
                     }
                }
           }
-
 
           stage('Build') {
                steps {
