@@ -56,41 +56,54 @@ pipeline {
                steps {
                     script {
                          withCredentials([usernamePassword(credentialsId: 'da329e7b-97e6-4165-ad68-01bc32cfb380', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                         echo "Actualizando el archivo README.md con el resultado de los tests..."
-                         
-                         // Hacer pull con rebase antes de modificar nada
-                         sh """
-                              echo "Haciendo fetch de los últimos cambios..."
-                              git fetch origin ci_jenkins
-                              echo "Haciendo pull con rebase para evitar conflictos..."
-                              git pull --rebase origin ci_jenkins || (echo "Error durante el pull/rebase. Por favor, revisa los conflictos." && exit 1)
-                         """
+                              echo "Actualizando el archivo README.md con el resultado de los tests..."
+                              
+                              // Guardar los cambios locales antes del pull
+                              sh """
+                                   echo "Haciendo stash de los cambios locales antes del pull..."
+                                   git stash || echo "No hay cambios locales para guardar."
+                              """
+                              
+                              // Hacer fetch y pull con rebase
+                              sh """
+                                   echo "Haciendo fetch de los últimos cambios..."
+                                   git fetch origin ci_jenkins
+                                   echo "Haciendo pull con rebase para evitar conflictos..."
+                                   git pull --rebase origin ci_jenkins || (echo "Error durante el pull/rebase. Por favor, revisa los conflictos." && exit 1)
+                              """
+                              
+                              // Restaurar los cambios stasheados
+                              sh """
+                                   echo "Aplicando los cambios locales guardados..."
+                                   git stash pop || echo "No hay cambios locales que restaurar."
+                              """
+                              
+                              // Ejecutar el script para actualizar el README.md
+                              sh """
+                                   echo "Ejecutando el script updateReadme.js..."
+                                   set -e
+                                   bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
+                              """
 
-                         // Ejecutar el script para actualizar el README.md
-                         sh """
-                              echo "Ejecutando el script updateReadme.js..."
-                              set -e
-                              bash -c 'source .env && node jenkinsScripts/updateReadme.js' || (echo "Error ejecutando el script de Node.js" && exit 1)
-                         """
+                              // Confirmar los cambios realizados en el README.md
+                              sh """
+                                   echo "Realizando commit solo para el README.md..."
+                                   git config user.name "Jenkins Pipeline"
+                                   git config user.email "jenkins@pipeline.local"
+                                   git add README.md
+                                   git commit -m "Update README.md with latest test results" || echo "Nada que confirmar, el archivo README.md no fue modificado."
+                              """
 
-                         // Confirmar los cambios realizados en el README.md
-                         sh """
-                              echo "Realizando commit solo para el README.md..."
-                              git config user.name "Jenkins Pipeline"
-                              git config user.email "jenkins@pipeline.local"
-                              git add README.md
-                              git commit -m "Update README.md with latest test results" || echo "Nada que confirmar, el archivo README.md no fue modificado."
-                         """
-
-                         // Realizar el push al repositorio remoto
-                         sh """
-                              echo "Realizando push al repositorio remoto..."
-                              git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
-                         """
+                              // Realizar el push al repositorio remoto
+                              sh """
+                                   echo "Realizando push al repositorio remoto..."
+                                   git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/AlvaroGarCam/react_project_jenkins ci_jenkins || (echo "Error: No se pudo realizar el push a la rama ci_jenkins." && exit 1)
+                              """
                          }
                     }
                }
           }
+
 
           stage('Build') {
                steps {
